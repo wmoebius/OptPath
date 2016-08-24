@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
+import math
+from scipy.integrate import ode
 
 def optimal_path_2d(travel_time, starting_points, dx, coords,
                  N=100000):
@@ -81,3 +83,89 @@ def optimal_path_2d(travel_time, starting_points, dx, coords,
             # a point exactly on the zero contour.
         res.append((yl,xl))
     return tuple(res)
+
+# under development: Euler forward implementation of finding optimal path, stops very close to phi=0
+def optpath_eulerforward(xs, ys, tt, phi, startpoint):
+
+    # setting up interpolation
+    tt_interp=RectBivariateSpline(xs,ys,tt.T)
+    phi_interp=RectBivariateSpline(xs,ys,phi.T)
+
+    # initial condition
+    currx=startpoint[0]
+    curry=startpoint[1]
+    signorigphi=np.asscalar(phi_interp.ev(currx,curry)) # current sign of phi so we can detect a change
+
+    # step size
+    dsorig=np.asscalar(0.5*(xs[1]-xs[0]))
+    ds=dsorig
+
+    # trajectory
+    traj=[] # t, x, y
+    traj.append((np.asscalar(tt_interp.ev(currx,curry)),currx,curry))
+
+    # while we have not crossed the phi=0 line (and not taken ridiculously small steps) 
+    while signorigphi*np.asscalar(phi_interp.ev(currx,curry))>0 and ds/dsorig>1e-10:
+        gradx=tt_interp.ev(currx,curry,dx=1,dy=0)
+        grady=tt_interp.ev(currx,curry,dx=0,dy=1)
+        auxgrad=math.sqrt(gradx*gradx+grady*grady) # to normalize
+        gradx=gradx/auxgrad
+        grady=grady/auxgrad
+        auxcurrx = currx - gradx*ds
+        auxcurry = curry - grady*ds
+        # if no sign change in phi, go forward
+        if signorigphi*np.asscalar(phi_interp.ev(auxcurrx,auxcurry))>0:
+            currx=auxcurrx
+            curry=auxcurry
+            traj.append((np.asscalar(tt_interp.ev(currx,curry)),currx,curry))
+        # otherwise abandon and choose smaller step size
+        else:
+            ds=ds/2.0
+    return np.array(traj)
+
+# under development: using SciPy ODE solver to find optimal path, stops at phi=0 (at what precision?)
+# inspired a lot by
+#    anaconda/lib/python2.7/site-packages/scipy/integrate/tests/test_integrate.py
+#    https://stackoverflow.com/questions/24097640/algebraic-constraint-to-terminate-ode-integration-with-scipy
+def optpath_scipyode(xs, ys, tt, phi, startpoint):
+
+    # setting up interpolation
+    tt_interp=RectBivariateSpline(xs,ys,tt.T)
+    phi_interp=RectBivariateSpline(xs,ys,phi.T)
+
+    # initial condition
+    t0 = 0.0
+    y0 = startpoint 
+    signorigphi=np.asscalar(phi_interp.ev(y0[0],y0[1]))
+
+    # trajectory
+    ts = []
+    ys = []
+
+    # for trajectory and aborting condition
+    def solout(t, y):
+        ts.append(t)
+        ys.append(y.copy())
+        if not signorigphi*np.asscalar(phi_interp.ev(y0[0],y0[1]))>0:
+            return -1
+        else:
+            return 0
+
+    # rhs of ODE
+    def rhs(t, y):
+        gradx=tt_interp.ev(y[0],y[1],dx=1,dy=0)
+        grady=tt_interp.ev(y[0],y[1],dx=0,dy=1)
+        auxgrad=math.sqrt(gradx*gradx+grady*grady)
+        return [-gradx/auxgrad, -grady/auxgrad]
+
+    # the actual integration
+    ig = ode(rhs).set_integrator('dopri5')
+    ig.set_initial_value(y0, t0)
+    ig.set_solout(solout)
+    # throws a warning at the moment...
+    ret = ig.integrate(1.0e8)
+    # what an ugly hack to make a proper np array...
+    npts=np.asarray(ts)
+    npts.resize((len(ts),1))
+    npys=np.asarray(ys)
+    return np.concatenate((npts,npys),axis=1)
