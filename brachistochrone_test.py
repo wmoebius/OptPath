@@ -4,7 +4,7 @@ import pylab as plt
 from skfmm import travel_time
 from scipy.optimize import fminbound
 
-from OptPath import optimal_path_2d
+from OptPath import optimal_path_2d, optpath_scipyode, optpath_eulerforward
 
 # Brachistochrone curve
 # see: http://mathworld.wolfram.com/BrachistochroneProblem.html
@@ -38,10 +38,26 @@ plt.plot([x0], [y0], "*") # plot starting point
 coords = np.linspace(0, 1.1, N)
 dx = coords[1]-coords[0]
 xp, yp = optimal_path_2d(time, ((x0,y0),), dx, coords)[0]
+
+print "starting forward euler integration"
+ft,fx,fy = optpath_eulerforward(np.squeeze(X[0,:]),np.squeeze(Y[:,0]),time,phi,(x0, y0)).T
+print "starting scipy integration"
+st,sx,sy = optpath_scipyode(np.squeeze(X[0,:]),np.squeeze(Y[:,0]),time,phi,(x0,y0)).T
+
+
 plt.plot(xp, yp, "o") # plot numerical solution as points.
+plt.plot(fx, fy, "o", color="white")
+plt.plot(sx, sy, "o", color="black")
+
 plt.gca().set_aspect(1)
 plt.axvline(1)
 plt.colorbar()
+
+print 2
+print 3
+
+
+
 # this is one way to find the error but it is problematic near the end
 # point in this case.
 thetap = np.arccos(1-np.array(yp)/b)
