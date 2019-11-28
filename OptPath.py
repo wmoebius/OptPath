@@ -147,7 +147,7 @@ def optpath_scipyode(xs, ys, tt, phi, startpoint):
         # time of the solver is not time in the problem...
         ts.append(tt_interp.ev(y[0],y[1]))
         ys.append(y.copy())
-        if not signorigphi*np.asscalar(phi_interp.ev(y0[0],y0[1]))>0:
+        if not signorigphi*np.asscalar(phi_interp.ev(y[0],y[1]))>0:
             return -1
         else:
             return 0
