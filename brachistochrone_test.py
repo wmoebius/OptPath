@@ -27,7 +27,7 @@ phi[X==1] = 0
 phi[X>1] = -1
 
 vel = np.sqrt(Y)
-time = travel_time(phi,vel,dx=grid_spacing)
+time = travel_time(phi,vel,dx=[grid_spacing,grid_spacing])
 plt.contourf(X,Y,time)
 plt.plot(x,y) # plot exact solution as solid line
 
