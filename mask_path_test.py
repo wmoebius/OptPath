@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import pylab as plt
 
@@ -32,5 +33,5 @@ exact = np.ma.MaskedArray(exact,mask)
 
 error = d-exact
 error.fill_value = 0
-print abs(error.data).max()
+print(abs(error.data).max())
 # error seems to be proportional to dx/2 in all cases. I guess this make sense?

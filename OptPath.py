@@ -1,3 +1,7 @@
+from __future__ import division
+from __future__ import print_function
+from builtins import range
+from past.utils import old_div
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 import math
@@ -54,7 +58,7 @@ def optimal_path_2d(travel_time, starting_points, dx, coords,
         x, y = position
         vel = np.array([gradx_interp(y, x)[0][0],
                         grady_interp(y, x)[0][0]])
-        return vel / np.linalg.norm(vel)
+        return old_div(vel, np.linalg.norm(vel))
 
     def euler_point_update(pos, ds):
         return pos - get_velocity(pos) * ds
@@ -77,7 +81,7 @@ def optimal_path_2d(travel_time, starting_points, dx, coords,
             x = runge_kutta(x, dx)
             distance = ((x[1] - xl[-1])**2 + (x[0] - yl[-1])**2)**0.5
             if distance < dx * 0.9999:
-                print "exiting"
+                print("exiting")
                 break
             # We should come up with a better stopping criteria that puts
             # a point exactly on the zero contour.
@@ -105,12 +109,12 @@ def optpath_eulerforward(xs, ys, tt, phi, startpoint):
     traj.append((np.asscalar(tt_interp.ev(currx,curry)),currx,curry))
 
     # while we have not crossed the phi=0 line (and not taken ridiculously small steps) 
-    while signorigphi*np.asscalar(phi_interp.ev(currx,curry))>0 and ds/dsorig>1e-10:
+    while signorigphi*np.asscalar(phi_interp.ev(currx,curry))>0 and old_div(ds,dsorig)>1e-10:
         gradx=tt_interp.ev(currx,curry,dx=1,dy=0)
         grady=tt_interp.ev(currx,curry,dx=0,dy=1)
         auxgrad=math.sqrt(gradx*gradx+grady*grady) # to normalize
-        gradx=gradx/auxgrad
-        grady=grady/auxgrad
+        gradx=old_div(gradx,auxgrad)
+        grady=old_div(grady,auxgrad)
         auxcurrx = currx - gradx*ds
         auxcurry = curry - grady*ds
         # if no sign change in phi, go forward
@@ -157,7 +161,7 @@ def optpath_scipyode(xs, ys, tt, phi, startpoint):
         gradx=tt_interp.ev(y[0],y[1],dx=1,dy=0)
         grady=tt_interp.ev(y[0],y[1],dx=0,dy=1)
         auxgrad=math.sqrt(gradx*gradx+grady*grady)
-        return [-gradx/auxgrad, -grady/auxgrad]
+        return [old_div(-gradx,auxgrad), old_div(-grady,auxgrad)]
 
     # the actual integration
     ig = ode(rhs).set_integrator('dopri5')
