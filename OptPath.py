@@ -89,11 +89,11 @@ def optimal_path_2d(travel_time, starting_points, dx, coords,
     return tuple(res)
 
 # under development: Euler forward implementation of finding optimal path, stops very close to phi=0
-def optpath_eulerforward(xs, ys, tt, phi, startpoint):
+def optpath_eulerforward(xs, ys, tt, phi, startpoint, intdeg):
 
     # setting up interpolation
-    tt_interp=RectBivariateSpline(xs,ys,tt.T)
-    phi_interp=RectBivariateSpline(xs,ys,phi.T)
+    tt_interp=RectBivariateSpline(xs,ys,tt.T,kx=intdeg,ky=intdeg)
+    phi_interp=RectBivariateSpline(xs,ys,phi.T,kx=intdeg,ky=intdeg)
 
     # initial condition
     currx=startpoint[0]
@@ -117,6 +117,7 @@ def optpath_eulerforward(xs, ys, tt, phi, startpoint):
         grady=old_div(grady,auxgrad)
         auxcurrx = currx - gradx*ds
         auxcurry = curry - grady*ds
+        # print(currx,curry)
         # if no sign change in phi, go forward
         if signorigphi*np.asscalar(phi_interp.ev(auxcurrx,auxcurry))>0:
             currx=auxcurrx
@@ -131,11 +132,11 @@ def optpath_eulerforward(xs, ys, tt, phi, startpoint):
 # inspired a lot by
 #    anaconda/lib/python2.7/site-packages/scipy/integrate/tests/test_integrate.py
 #    https://stackoverflow.com/questions/24097640/algebraic-constraint-to-terminate-ode-integration-with-scipy
-def optpath_scipyode(xs, ys, tt, phi, startpoint):
+def optpath_scipyode(xs, ys, tt, phi, startpoint, intdeg):
 
     # setting up interpolation
-    tt_interp=RectBivariateSpline(xs,ys,tt.T)
-    phi_interp=RectBivariateSpline(xs,ys,phi.T)
+    tt_interp=RectBivariateSpline(xs,ys,tt.T,kx=intdeg,ky=intdeg)
+    phi_interp=RectBivariateSpline(xs,ys,phi.T,kx=intdeg,ky=intdeg)
 
     # initial condition
     t0 = 0.0
@@ -151,6 +152,7 @@ def optpath_scipyode(xs, ys, tt, phi, startpoint):
         # time of the solver is not time in the problem...
         ts.append(tt_interp.ev(y[0],y[1]))
         ys.append(y.copy())
+        # print(y)
         if not signorigphi*np.asscalar(phi_interp.ev(y[0],y[1]))>0:
             return -1
         else:
